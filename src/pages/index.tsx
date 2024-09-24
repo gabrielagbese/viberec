@@ -44,8 +44,7 @@ export default function Home() {
             const data = await res.json();
             console.log("Anthropic API response:", data.completion); // Debugging
 
-            // Try parsing the response as JSON
-            let recommendedTitles = [];
+            let recommendedMovies = [];
 
             try {
                 const parsedResponse = JSON.parse(data.completion);
@@ -54,9 +53,12 @@ export default function Home() {
                     parsedResponse.recommendations &&
                     Array.isArray(parsedResponse.recommendations)
                 ) {
-                    // Extract the 'title' from each recommendation
-                    recommendedTitles = parsedResponse.recommendations.map(
-                        (movie: any) => movie.title
+                    // Capture both the title and the reason
+                    recommendedMovies = parsedResponse.recommendations.map(
+                        (movie: any) => ({
+                            title: movie.title,
+                            reason: movie.reason,
+                        })
                     );
                 } else {
                     console.error(
@@ -69,18 +71,29 @@ export default function Home() {
                 alert("Error in the response format. Please try again.");
             }
 
-            if (recommendedTitles.length > 0) {
+            if (recommendedMovies.length > 0) {
                 // Call the TMDB API route to get details for recommended movies
                 const tmdbRes = await fetch("/api/tmdb", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ titles: recommendedTitles }),
+                    body: JSON.stringify({
+                        titles: recommendedMovies.map((movie) => movie.title),
+                    }),
                 });
 
                 const tmdbData = await tmdbRes.json();
-                setMovieDetails(tmdbData);
+
+                // Combine TMDB data with the reasons
+                const combinedData = tmdbData.map(
+                    (tmdbMovie: any, index: number) => ({
+                        ...tmdbMovie,
+                        reason: recommendedMovies[index].reason, // Attach the reason to each movie
+                    })
+                );
+
+                setMovieDetails(combinedData);
             }
 
             setLoading(false);
@@ -92,7 +105,7 @@ export default function Home() {
 
     return (
         <div>
-            <h1>Movie Recommendation Api</h1>
+            <h1>Movie Recommendation System</h1>
             <form onSubmit={handleSubmit}>
                 {movies.map((movie, index) => (
                     <div key={index}>
@@ -120,6 +133,7 @@ export default function Home() {
             <div>
                 {movieDetails.map((movie, index) => (
                     <div key={index} className="movie-card">
+                        {/* Display TMDB movie data */}
                         <h3>{movie.title}</h3>
                         <p>
                             <strong>Release Date:</strong> {movie.release_date}
@@ -131,6 +145,12 @@ export default function Home() {
                                 alt={`${movie.title} poster`}
                             />
                         )}
+
+                        {/* Display the reason from Anthropic API */}
+                        <p>
+                            <strong>Reason for recommendation:</strong>{" "}
+                            {movie.reason}
+                        </p>
                     </div>
                 ))}
             </div>
