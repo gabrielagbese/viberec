@@ -1,0 +1,81 @@
+@import "breakpoints";
+
+:root {
+    --background: #ffffff;
+    --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+}
+
+html,
+body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.main-container {
+    width: 100vw;
+
+    @include xs {
+    }
+    @include lg {
+        display: flex;
+        height: 100vh;
+    }
+}
+
+.title-input-section {
+    background: red;
+    height: 100vh;
+    @include xs {
+    }
+    @include lg {
+        min-width: 35%;
+    }
+}
+
+.recommendation-section {
+    height: 100vh;
+    overflow-y: clip;
+    @include xs {
+        width: 100%;
+    }
+    @include lg {
+        width: 65%;
+    }
+}
+
+.recommended-titles {
+    background-color: blue;
+    margin-inline: 40%;
+    height: 100vh;
+}
+
+.recommended-details {
+    background-color: green;
+    height: 100vh;
+}
