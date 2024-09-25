@@ -1,26 +1,29 @@
 import { useState, FormEvent } from "react";
 
-export default function Home() {
-    const [movies, setMovies] = useState<string[]>(["", ""]);
-    const [movieDetails, setMovieDetails] = useState<any[]>([]); // Store movie details
+const Home = () => {
+    const [movieInput, setMovieInput] = useState("");
+    const [movies, setMovies] = useState<string[]>([]);
+    const [movieDetails, setMovieDetails] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const addMovieField = () => {
-        setMovies([...movies, ""]);
+    const addMovieToList = () => {
+        if (movieInput.trim() === "") return;
+        // Add the movie to the list and clear the input
+        setMovies([...movies, movieInput]);
+        setMovieInput(""); // Clear the input field
     };
 
-    const handleMovieChange = (index: number, value: string) => {
-        const updatedMovies = [...movies];
-        updatedMovies[index] = value;
+    const removeMovieFromList = (index: number) => {
+        // Remove the movie from the list by index
+        const updatedMovies = movies.filter((_, i) => i !== index);
         setMovies(updatedMovies);
     };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        const validMovies = movies.filter((movie) => movie.trim() !== "");
-        if (validMovies.length === 0) {
-            alert("Please enter at least one movie title");
+        if (movies.length === 0) {
+            alert("Please add at least one movie title");
             return;
         }
 
@@ -28,7 +31,7 @@ export default function Home() {
         setMovieDetails([]);
 
         // Generate the prompt for Anthropic API
-        const moviePrompt = validMovies.join(", ");
+        const moviePrompt = movies.join(", ");
         const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended in JSON format. Give just the answer, so I only receive JSON.`;
 
         try {
@@ -107,33 +110,39 @@ export default function Home() {
         <div>
             <h1>Movie Recommendation System</h1>
             <form onSubmit={handleSubmit}>
-                {movies.map((movie, index) => (
-                    <div key={index}>
-                        <input
-                            type="text"
-                            value={movie}
-                            onChange={(e) =>
-                                handleMovieChange(index, e.target.value)
-                            }
-                            placeholder={`Enter movie ${index + 1}`}
-                            required
-                        />
-                    </div>
-                ))}
+                <div>
+                    <input
+                        type="text"
+                        value={movieInput}
+                        onChange={(e) => setMovieInput(e.target.value)}
+                        placeholder="Enter a movie title"
+                    />
+                    <button type="button" onClick={addMovieToList}>
+                        +
+                    </button>
+                </div>
 
-                <button type="button" onClick={addMovieField}>
-                    Add another movie
-                </button>
+                {/* Display the list of movies added */}
+                <ul>
+                    {movies.map((movie, index) => (
+                        <li key={index}>
+                            {movie}{" "}
+                            <button onClick={() => removeMovieFromList(index)}>
+                                Remove
+                            </button>
+                        </li>
+                    ))}
+                </ul>
 
                 <button type="submit">Submit</button>
             </form>
 
             {loading && <p>Loading movie recommendations...</p>}
 
+            {/* Display movie details */}
             <div>
                 {movieDetails.map((movie, index) => (
                     <div key={index} className="movie-card">
-                        {/* Display TMDB movie data */}
                         <h3>{movie.title}</h3>
                         <p>
                             <strong>Release Date:</strong> {movie.release_date}
@@ -145,8 +154,6 @@ export default function Home() {
                                 alt={`${movie.title} poster`}
                             />
                         )}
-
-                        {/* Display the reason from Anthropic API */}
                         <p>
                             <strong>Reason for recommendation:</strong>{" "}
                             {movie.reason}
@@ -156,4 +163,6 @@ export default function Home() {
             </div>
         </div>
     );
-}
+};
+
+export default Home;
