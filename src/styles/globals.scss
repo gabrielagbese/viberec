@@ -69,12 +69,48 @@ a {
     }
 }
 
-.recommended-titles {
+.recommended-titles-container {
     background-color: blue;
-    margin-inline: 40%;
+    border: 5px solid white;
+    box-sizing: border-box;
+    border-radius: 15px;
+    //margin-inline: 20%;
     height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
 }
 
+.recommended-titles {
+    background: pink;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    @include xs {
+        width: 100%;
+    }
+    @include lg {
+        width: 75%;
+    }
+}
+
+.movie-card {
+    align-items: center;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    margin-inline: auto;
+    @include xs {
+        width: 75%;
+    }
+    @include md {
+        width: 65%;
+    }
+    @include lg {
+        width: 50%;
+    }
+}
 .recommended-details {
     background-color: green;
     height: 100vh;

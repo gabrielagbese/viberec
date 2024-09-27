@@ -8,8 +8,10 @@ const Home = () => {
     const [movieInput, setMovieInput] = useState("");
     const [movies, setMovies] = useState<string[]>([]);
     const [movieDetails, setMovieDetails] = useState<any[]>([]);
-    const [selectedMovie, setSelectedMovie] = useState<any>(null); // To store the selected movie
-    const [loading, setLoading] = useState(false);
+    const [selectedMovie, setSelectedMovie] = useState<any>(null);
+    const [recommendationStatus, setRecommendationStatus] = useState<
+        "idle" | "loading" | "completed"
+    >("idle");
 
     const recDetailsRef = useRef(null);
 
@@ -32,9 +34,9 @@ const Home = () => {
             return;
         }
 
-        setLoading(true);
+        setRecommendationStatus("loading");
         setMovieDetails([]);
-        setSelectedMovie(null); // Reset selected movie on new submission
+        setSelectedMovie(null);
 
         const moviePrompt = movies.join(", ");
         const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended in JSON format. Give just the answer, so I only receive JSON.`;
@@ -91,23 +93,22 @@ const Home = () => {
                 const combinedData = tmdbData.map(
                     (tmdbMovie: any, index: number) => ({
                         ...tmdbMovie,
-                        reason: recommendedMovies[index].reason, // Attach the reason to each movie
+                        reason: recommendedMovies[index].reason,
                     })
                 );
 
                 setMovieDetails(combinedData);
             }
 
-            setLoading(false);
+            setRecommendationStatus("completed");
         } catch (error) {
             console.error("Error during submission:", error);
-            setLoading(false);
+            setRecommendationStatus("idle");
         }
     };
 
-    // Function to handle movie click and display details in the second div
     const handleMovieClick = (movie: any) => {
-        setSelectedMovie(movie); // Set the clicked movie as selected
+        setSelectedMovie(movie);
         openDetails();
     };
 
@@ -152,38 +153,43 @@ const Home = () => {
                 </form>
             </div>
             <div className="recommendation-section">
-                {loading && <p>Loading movie recommendations...</p>}
-
                 <div>
-                    {/* First Div: Display movie posters and titles */}
-                    <div className="recommended-titles">
-                        <h2>Recommended Movies</h2>
-                        <div
-                            style={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(2, 1fr)",
-                                gap: "10px",
-                            }}
-                        >
-                            {movieDetails.map((movie, index) => (
-                                <div
-                                    key={index}
-                                    className="movie-card"
-                                    onClick={() => handleMovieClick(movie)}
-                                    style={{ cursor: "pointer" }}
-                                >
-                                    <img
-                                        src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
-                                        alt={`${movie.title} poster`}
-                                        style={{ width: "100%" }}
-                                    />
-                                    <p>{movie.title}</p>
+                    <div className="recommended-titles-container">
+                        {recommendationStatus === "idle" ? (
+                            <p>
+                                Enter movie titles and click 'Submit' to get
+                                recommendations.
+                            </p>
+                        ) : recommendationStatus === "loading" ? (
+                            <p>Loading movie recommendations...</p>
+                        ) : (
+                            <div>
+                                <div className="recommended-titles">
+                                    {movieDetails.map((movie, index) => (
+                                        <div
+                                            key={index}
+                                            className="movie-card"
+                                            onClick={() =>
+                                                handleMovieClick(movie)
+                                            }
+                                            style={{ cursor: "pointer" }}
+                                        >
+                                            <img
+                                                src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                                                alt={`${movie.title} poster`}
+                                                style={{ width: "100%" }}
+                                            />
+                                            <h4>{movie.title}</h4>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                                <div>
+                                    {/*empty div to centralize recommended-titles*/}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Second Div: Display movie details when a movie is clicked */}
                     <div className="recommended-details" ref={recDetailsRef}>
                         {selectedMovie ? (
                             <>
