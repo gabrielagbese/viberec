@@ -1,4 +1,4 @@
-import { useState, FormEvent, useRef } from "react";
+import { useState, FormEvent, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -9,11 +9,34 @@ const Home = () => {
     const [movies, setMovies] = useState<string[]>([]);
     const [movieDetails, setMovieDetails] = useState<any[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<any>(null);
+    const [userCountry, setUserCountry] = useState<string | null>(null);
     const [recommendationStatus, setRecommendationStatus] = useState<
         "idle" | "loading" | "completed"
     >("idle");
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
 
-    const recDetailsRef = useRef(null);
+    const recDetailsRef = useRef<HTMLDivElement>(null);
+
+    const recommendationSectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsSmallScreen(window.innerWidth < 1025);
+        };
+
+        checkScreenSize();
+        window.addEventListener("resize", checkScreenSize);
+
+        return () => window.removeEventListener("resize", checkScreenSize);
+
+        // Fetch user's country
+        fetch("/api/country")
+            .then((res) => res.json())
+            .then((data) => setUserCountry(data.country))
+            .catch((error) => console.error("Error fetching country:", error));
+
+        return () => window.removeEventListener("resize", checkScreenSize);
+    }, []);
 
     const addMovieToList = () => {
         if (movieInput.trim() === "") return;
@@ -37,6 +60,12 @@ const Home = () => {
         setRecommendationStatus("loading");
         setMovieDetails([]);
         setSelectedMovie(null);
+
+        if (isSmallScreen && recommendationSectionRef.current) {
+            recommendationSectionRef.current.scrollIntoView({
+                behavior: "smooth",
+            });
+        }
 
         const moviePrompt = movies.join(", ");
         const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended in JSON format. Give just the answer, so I only receive JSON.`;
@@ -107,8 +136,118 @@ const Home = () => {
         }
     };
 
-    const handleMovieClick = (movie: any) => {
-        setSelectedMovie(movie);
+    const calculateBrightness = (r: number, g: number, b: number): number => {
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    };
+
+    const isNearBlack = (r: number, g: number, b: number): boolean => {
+        return r <= 10 && g <= 10 && b <= 10;
+    };
+
+    const brightenColor = (color: string, factor: number = 7): string => {
+        const rgb = color.match(/\d+/g)!.map(Number);
+        if (isNearBlack(rgb[0], rgb[1], rgb[2])) {
+            return "rgb(128, 128, 128)"; // Return medium grey for near-black colors
+        }
+        const brightenedRgb = rgb.map((channel) =>
+            Math.min(255, Math.round(channel * factor))
+        );
+        return `rgb(${brightenedRgb.join(",")})`;
+    };
+
+    const getDominantColors = (
+        imageUrl: string,
+        colorCount: number = 5
+    ): Promise<string[]> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = imageUrl;
+
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+                if (!context) return resolve(["rgb(200,200,200)"]);
+
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+
+                const imageData = context.getImageData(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+                const data = imageData.data;
+
+                const colorCounts: { [key: string]: number } = {};
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const rgb = `${r},${g},${b}`;
+                    colorCounts[rgb] = (colorCounts[rgb] || 0) + 1;
+                }
+
+                const sortedColors = Object.entries(colorCounts)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([color]) => {
+                        const [r, g, b] = color.split(",").map(Number);
+                        const brightness = calculateBrightness(r, g, b);
+                        return {
+                            color: `rgb(${color})`,
+                            brightness,
+                            isNearBlack: isNearBlack(r, g, b),
+                        };
+                    });
+
+                const selectedColors = sortedColors
+                    .slice(0, colorCount)
+                    .map(({ color, brightness, isNearBlack }) =>
+                        isNearBlack
+                            ? "rgb(128, 128, 128)"
+                            : brightness <= 80
+                            ? brightenColor(color)
+                            : color
+                    );
+
+                resolve(selectedColors);
+            };
+
+            img.onerror = () => {
+                console.error("Error loading image:", imageUrl);
+                resolve(["rgb(200,200,200)"]);
+            };
+        });
+    };
+
+    const handleMovieClick = async (movie: any) => {
+        const posterUrl = `/api/tmdb/w200${movie.poster_path}`;
+
+        // Fetch OMDb details based on the movie's IMDb ID
+        const omdbResponse = await fetch(`/api/omdb?i=${movie.imdb_id}`);
+        const omdbData = await omdbResponse.json();
+
+        // Merge OMDb data with the selected movie
+        const movieWithDetails = {
+            ...movie,
+            omdb_data: omdbData, // Ensure omdb_data is set correctly
+        };
+
+        setSelectedMovie(movieWithDetails); // Update state to include OMDb data
+
+        const dominantColors = await getDominantColors(posterUrl);
+        if (recDetailsRef.current && dominantColors.length > 0) {
+            const backgroundColor = dominantColors[0];
+            recDetailsRef.current.style.backgroundColor = backgroundColor;
+
+            const [r, g, b] = backgroundColor.match(/\d+/g)!.map(Number);
+            const brightness = calculateBrightness(r, g, b);
+            recDetailsRef.current.style.color =
+                brightness > 125 ? "black" : "white";
+        }
+
         openDetails();
     };
 
@@ -117,7 +256,17 @@ const Home = () => {
     };
     const closeDetails = () => {
         gsap.to(recDetailsRef.current, { y: "100%" });
+        // Optionally reset background color when closed
+        if (recDetailsRef.current) {
+            recDetailsRef.current.style.backgroundColor = "transparent"; // or a default color
+        }
     };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    console.log(selectedMovie);
 
     return (
         <div className="main-container">
@@ -152,7 +301,15 @@ const Home = () => {
                     <button type="submit">Submit</button>
                 </form>
             </div>
-            <div className="recommendation-section">
+            <div
+                className="recommendation-section"
+                ref={recommendationSectionRef}
+            >
+                {isSmallScreen && (
+                    <button onClick={scrollToTop} className="back-to-top">
+                        Back to Top
+                    </button>
+                )}
                 <div>
                     <div className="recommended-titles-container">
                         {recommendationStatus === "idle" ? (
@@ -163,7 +320,7 @@ const Home = () => {
                         ) : recommendationStatus === "loading" ? (
                             <p>Loading movie recommendations...</p>
                         ) : (
-                            <div>
+                            <>
                                 <div className="recommended-titles">
                                     {movieDetails.map((movie, index) => (
                                         <div
@@ -186,7 +343,7 @@ const Home = () => {
                                 <div>
                                     {/*empty div to centralize recommended-titles*/}
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
 
@@ -198,7 +355,7 @@ const Home = () => {
                                     <strong>Release Date:</strong>{" "}
                                     {selectedMovie.release_date}
                                 </p>
-                                <button onClick={closeDetails}>close</button>
+                                <button onClick={closeDetails}>Close</button>
                                 <p>{selectedMovie.overview}</p>
                                 {selectedMovie.poster_path && (
                                     <img
@@ -211,6 +368,69 @@ const Home = () => {
                                     <strong>Reason for recommendation:</strong>{" "}
                                     {selectedMovie.reason}
                                 </p>
+
+                                {/* Render OMDb details */}
+                                {selectedMovie.omdb_data && (
+                                    <>
+                                        <p>
+                                            <strong>Director:</strong>{" "}
+                                            {selectedMovie.omdb_data.Director}
+                                        </p>
+                                        <p>
+                                            <strong>Actors:</strong>{" "}
+                                            {selectedMovie.omdb_data.Actors}
+                                        </p>
+                                        <p>
+                                            <strong>Rated:</strong>{" "}
+                                            {selectedMovie.omdb_data.Rated}
+                                        </p>
+                                        <p>
+                                            <strong>Runtime:</strong>{" "}
+                                            {selectedMovie.omdb_data.Runtime}
+                                        </p>
+                                        <p>
+                                            <strong>Genre:</strong>{" "}
+                                            {selectedMovie.omdb_data.Genre}
+                                        </p>
+                                        <p>
+                                            <strong>Metascore:</strong>{" "}
+                                            {selectedMovie.omdb_data.Metascore}
+                                        </p>
+                                        <p>
+                                            <strong>IMDb Rating:</strong>{" "}
+                                            {selectedMovie.omdb_data.imdbRating}
+                                        </p>
+                                    </>
+                                )}
+
+                                {/* Render Trailers */}
+                                {selectedMovie.trailers.length > 0 && (
+                                    <div>
+                                        <h3>Trailer:</h3>
+                                        <iframe
+                                            width="560"
+                                            height="315"
+                                            src={`https://www.youtube.com/embed/${selectedMovie.trailers[0].key}`}
+                                            title={
+                                                selectedMovie.trailers[0].name
+                                            }
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        ></iframe>
+                                    </div>
+                                )}
+
+                                {selectedMovie.stills &&
+                                    selectedMovie.stills.map(
+                                        (still: any, index: number) => (
+                                            <img
+                                                key={index}
+                                                src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
+                                                alt="Movie still"
+                                            />
+                                        )
+                                    )}
                             </>
                         ) : (
                             <p>Select a movie to see its details</p>
