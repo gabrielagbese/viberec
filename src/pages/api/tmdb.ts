@@ -17,6 +17,19 @@ interface WatchProvidersResponse {
     };
 }
 
+interface Video {
+    id: string;
+    iso_639_1: string; // Language code
+    iso_3166_1: string; // Country code
+    key: string; // YouTube video key (used to construct video URL)
+    name: string; // Name of the video
+    site: string; // Hosting site, e.g., "YouTube"
+    size: number; // Video resolution (e.g., 720, 1080)
+    type: string; // Type of video (e.g., "Trailer", "Teaser")
+    official: boolean; // Whether it's an official video
+    published_at: string; // Date of publication
+}
+
 interface MovieDetails {
     title: string;
     release_date: string;
@@ -112,7 +125,7 @@ export default async function handler(
                             ? stillsData.backdrops.slice(0, 10)
                             : [];
                         const trailers = videosData.results.filter(
-                            (video) =>
+                            (video: Video) =>
                                 video.site === "YouTube" &&
                                 video.type === "Trailer"
                         );

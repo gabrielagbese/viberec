@@ -4,6 +4,17 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
 
+interface Provider {
+    provider_id: number;
+    provider_name: string;
+    logo_path: string | null;
+}
+
+interface RecommendedMovie {
+    title: string; // Title of the recommended movie
+    reason: string; // Reason why the movie is recommended
+}
+
 const Home = () => {
     const [movieInput, setMovieInput] = useState("");
     const [movies, setMovies] = useState<string[]>([]);
@@ -110,7 +121,9 @@ const Home = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        titles: recommendedMovies.map((movie) => movie.title),
+                        titles: recommendedMovies.map(
+                            (movie: RecommendedMovie) => movie.title
+                        ),
                     }),
                 });
 
@@ -434,50 +447,53 @@ const Home = () => {
                                             ].flatrate ? (
                                                 selectedMovie.watch_providers[
                                                     userCountry
-                                                ].flatrate.map((provider) => (
-                                                    <div
-                                                        key={
-                                                            provider.provider_id
-                                                        }
-                                                        style={{
-                                                            display: "flex",
-                                                            alignItems:
-                                                                "center",
-                                                            marginBottom: "5px",
-                                                        }}
-                                                    >
-                                                        {provider.logo_path ? (
-                                                            <img
-                                                                src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
-                                                                alt={
+                                                ].flatrate.map(
+                                                    (provider: Provider) => (
+                                                        <div
+                                                            key={
+                                                                provider.provider_id
+                                                            }
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                marginBottom:
+                                                                    "5px",
+                                                            }}
+                                                        >
+                                                            {provider.logo_path ? (
+                                                                <img
+                                                                    src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
+                                                                    alt={
+                                                                        provider.provider_name
+                                                                    }
+                                                                    style={{
+                                                                        width: "30px",
+                                                                        height: "30px",
+                                                                        marginRight:
+                                                                            "10px",
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    style={{
+                                                                        width: "30px",
+                                                                        height: "30px",
+                                                                        marginRight:
+                                                                            "10px",
+                                                                        backgroundColor:
+                                                                            "#ccc",
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            <p>
+                                                                {
                                                                     provider.provider_name
                                                                 }
-                                                                style={{
-                                                                    width: "30px",
-                                                                    height: "30px",
-                                                                    marginRight:
-                                                                        "10px",
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <div
-                                                                style={{
-                                                                    width: "30px",
-                                                                    height: "30px",
-                                                                    marginRight:
-                                                                        "10px",
-                                                                    backgroundColor:
-                                                                        "#ccc",
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <p>
-                                                            {
-                                                                provider.provider_name
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                ))
+                                                            </p>
+                                                        </div>
+                                                    )
+                                                )
                                             ) : (
                                                 <p>
                                                     Providers not available in
