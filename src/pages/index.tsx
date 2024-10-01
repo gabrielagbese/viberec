@@ -11,15 +11,15 @@ interface Provider {
     logo_path: string | null; // Allowing null since the logo path might not always be available
 }
 
-interface WatchProvidersResponse {
-    [region: string]: {
-        results: {
-            flatrate?: Provider[]; // Optional property for flat-rate providers
-            rent?: Provider[]; // Optional property for rental providers
-            buy?: Provider[]; // Optional property for purchase providers
-        };
-    };
-}
+// interface WatchProvidersResponse {
+//     [region: string]: {
+//         results: {
+//             flatrate?: Provider[]; // Optional property for flat-rate providers
+//             rent?: Provider[]; // Optional property for rental providers
+//             buy?: Provider[]; // Optional property for purchase providers
+//         };
+//     };
+// }
 
 interface RecommendedMovie {
     title: string; // Title of the recommended movie

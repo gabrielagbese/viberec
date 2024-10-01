@@ -64,8 +64,8 @@ export interface MovieDetails {
         metascore: string;
         imdbRating: string;
     };
-    stills: Array<any>; // Update with the actual type if known
-    trailers: Array<any>; // Update with the actual type if known
+    stills: Array<Still>; // Update with the actual type if known
+    trailers: Array<Video>; // Update with the actual type if known
     watch_providers: WatchProvidersResponse | null; // Use the defined interface
     reason?: string;
 }
