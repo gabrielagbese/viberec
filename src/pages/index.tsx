@@ -331,7 +331,7 @@ const Home = () => {
                     <div className="recommended-titles-container magicpattern">
                         {recommendationStatus === "idle" ? (
                             <p>
-                                Enter movie titles and click 'Submit' to get
+                                Enter movie titles and click Submit to get
                                 recommendations.
                             </p>
                         ) : recommendationStatus === "loading" ? (
