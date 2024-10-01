@@ -1,13 +1,24 @@
 import { useState, FormEvent, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { MovieDetails, Still, WatchProvider } from "./api/tmdb";
 
 gsap.registerPlugin(useGSAP);
 
 interface Provider {
     provider_id: number;
     provider_name: string;
-    logo_path: string | null;
+    logo_path: string | null; // Allowing null since the logo path might not always be available
+}
+
+interface WatchProvidersResponse {
+    [region: string]: {
+        results: {
+            flatrate?: Provider[]; // Optional property for flat-rate providers
+            rent?: Provider[]; // Optional property for rental providers
+            buy?: Provider[]; // Optional property for purchase providers
+        };
+    };
 }
 
 interface RecommendedMovie {
@@ -18,8 +29,11 @@ interface RecommendedMovie {
 const Home = () => {
     const [movieInput, setMovieInput] = useState("");
     const [movies, setMovies] = useState<string[]>([]);
-    const [movieDetails, setMovieDetails] = useState<any[]>([]);
-    const [selectedMovie, setSelectedMovie] = useState<any>(null);
+    const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
+    const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
+        null
+    );
+
     const [userCountry, setUserCountry] = useState<string | null>(null);
     const [recommendationStatus, setRecommendationStatus] = useState<
         "idle" | "loading" | "completed"
@@ -98,7 +112,7 @@ const Home = () => {
                     Array.isArray(parsedResponse.recommendations)
                 ) {
                     recommendedMovies = parsedResponse.recommendations.map(
-                        (movie: any) => ({
+                        (movie: RecommendedMovie) => ({
                             title: movie.title,
                             reason: movie.reason,
                         })
@@ -130,7 +144,7 @@ const Home = () => {
                 const tmdbData = await tmdbRes.json();
 
                 const combinedData = tmdbData.map(
-                    (tmdbMovie: any, index: number) => ({
+                    (tmdbMovie: MovieDetails, index: number) => ({
                         ...tmdbMovie,
                         reason: recommendedMovies[index].reason,
                     })
@@ -232,7 +246,7 @@ const Home = () => {
         });
     };
 
-    const handleMovieClick = async (movie: any) => {
+    const handleMovieClick = async (movie: MovieDetails) => {
         const posterUrl = `/api/tmdb/w200${movie.poster_path}`;
 
         // Directly use the movie object, which already includes OMDb data
@@ -424,9 +438,10 @@ const Home = () => {
                                     </div>
                                 )}
 
+                                {/* Render Stills */}
                                 {selectedMovie.stills &&
                                     selectedMovie.stills.map(
-                                        (still: any, index: number) => (
+                                        (still: Still, index: number) => (
                                             <img
                                                 key={index}
                                                 src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
@@ -435,64 +450,77 @@ const Home = () => {
                                         )
                                     )}
 
+                                {/* Render Watch Providers */}
                                 {selectedMovie.watch_providers &&
                                     userCountry && (
                                         <>
                                             <p>Providers:</p>
                                             {selectedMovie.watch_providers[
                                                 userCountry
-                                            ] &&
-                                            selectedMovie.watch_providers[
-                                                userCountry
-                                            ].flatrate ? (
+                                            ] ? (
                                                 selectedMovie.watch_providers[
                                                     userCountry
-                                                ].flatrate.map(
-                                                    (provider: Provider) => (
-                                                        <div
-                                                            key={
-                                                                provider.provider_id
-                                                            }
-                                                            style={{
-                                                                display: "flex",
-                                                                alignItems:
-                                                                    "center",
-                                                                marginBottom:
-                                                                    "5px",
-                                                            }}
-                                                        >
-                                                            {provider.logo_path ? (
-                                                                <img
-                                                                    src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
-                                                                    alt={
+                                                ].flatrate &&
+                                                selectedMovie.watch_providers[
+                                                    userCountry
+                                                ].flatrate.length > 0 ? (
+                                                    selectedMovie.watch_providers[
+                                                        userCountry
+                                                    ].flatrate.map(
+                                                        (
+                                                            provider: WatchProvider
+                                                        ) => (
+                                                            <div
+                                                                key={
+                                                                    provider.provider_id
+                                                                }
+                                                                style={{
+                                                                    display:
+                                                                        "flex",
+                                                                    alignItems:
+                                                                        "center",
+                                                                    marginBottom:
+                                                                        "5px",
+                                                                }}
+                                                            >
+                                                                {provider.logo_path ? (
+                                                                    <img
+                                                                        src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
+                                                                        alt={
+                                                                            provider.provider_name
+                                                                        }
+                                                                        style={{
+                                                                            width: "30px",
+                                                                            height: "30px",
+                                                                            marginRight:
+                                                                                "10px",
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <div
+                                                                        style={{
+                                                                            width: "30px",
+                                                                            height: "30px",
+                                                                            marginRight:
+                                                                                "10px",
+                                                                            backgroundColor:
+                                                                                "#ccc",
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                                <p>
+                                                                    {
                                                                         provider.provider_name
                                                                     }
-                                                                    style={{
-                                                                        width: "30px",
-                                                                        height: "30px",
-                                                                        marginRight:
-                                                                            "10px",
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <div
-                                                                    style={{
-                                                                        width: "30px",
-                                                                        height: "30px",
-                                                                        marginRight:
-                                                                            "10px",
-                                                                        backgroundColor:
-                                                                            "#ccc",
-                                                                    }}
-                                                                />
-                                                            )}
-                                                            <p>
-                                                                {
-                                                                    provider.provider_name
-                                                                }
-                                                            </p>
-                                                        </div>
+                                                                </p>
+                                                            </div>
+                                                        )
                                                     )
+                                                ) : (
+                                                    <p>
+                                                        Providers not available
+                                                        in your region.
+                                                    </p>
                                                 )
                                             ) : (
                                                 <p>

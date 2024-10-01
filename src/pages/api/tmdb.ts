@@ -5,16 +5,25 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY as string;
 const OMDB_API_KEY = process.env.OMDB_API_KEY as string;
 
 // Define interfaces for the expected data structures
-interface WatchProvider {
+// Define the structure of a single watch provider
+export interface WatchProvider {
     provider_id: number;
     provider_name: string;
-    logo_path: string;
+    logo_path: string | null;
+    display_priority: number; // Optional, if you want to use this information
 }
 
-interface WatchProvidersResponse {
-    [region: string]: {
-        results: WatchProvider[];
-    };
+// Define the structure of watch providers for a specific country
+export interface CountryWatchProviders {
+    link: string; // The link to watch the movie in the specific region
+    buy?: WatchProvider[]; // Array of providers available for buying
+    flatrate?: WatchProvider[]; // Array of providers available for flat-rate streaming
+    rent?: WatchProvider[]; // Array of providers available for renting
+}
+
+// Update the WatchProvidersResponse to accommodate the new structure
+export interface WatchProvidersResponse {
+    [region: string]: CountryWatchProviders; // Keys are country codes, values are CountryWatchProviders
 }
 
 interface Video {
@@ -29,8 +38,17 @@ interface Video {
     official: boolean; // Whether it's an official video
     published_at: string; // Date of publication
 }
+export interface Still {
+    aspect_ratio: number;
+    file_path: string; // The path to the image
+    height: number;
+    width: number;
+    iso_639_1: string | null; // Language code if applicable, otherwise null
+    vote_average: number;
+    vote_count: number;
+}
 
-interface MovieDetails {
+export interface MovieDetails {
     title: string;
     release_date: string;
     overview: string;
@@ -49,6 +67,7 @@ interface MovieDetails {
     stills: Array<any>; // Update with the actual type if known
     trailers: Array<any>; // Update with the actual type if known
     watch_providers: WatchProvidersResponse | null; // Use the defined interface
+    reason?: string;
 }
 
 export default async function handler(
