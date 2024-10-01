@@ -5,11 +5,11 @@ import { MovieDetails, Still, WatchProvider } from "./api/tmdb";
 
 gsap.registerPlugin(useGSAP);
 
-interface Provider {
-    provider_id: number;
-    provider_name: string;
-    logo_path: string | null; // Allowing null since the logo path might not always be available
-}
+// interface Provider {
+//     provider_id: number;
+//     provider_name: string;
+//     logo_path: string | null; // Allowing null since the logo path might not always be available
+// }
 
 // interface WatchProvidersResponse {
 //     [region: string]: {
