@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // pages/api/anthropic.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import Anthropic from "@anthropic-ai/sdk";
