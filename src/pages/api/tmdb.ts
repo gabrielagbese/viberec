@@ -153,7 +153,7 @@ export default async function handler(
                         const watchProviders = providersData.results
                             ? providersData.results // This contains the watch provider information
                             : null;
-                        console.log("wp:", watchProviders);
+                        //console.log("wp:", watchProviders);
                         // Return all relevant data
                         return {
                             title: movie.title,

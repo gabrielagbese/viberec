@@ -56,7 +56,7 @@ const Home = () => {
             .then((res) => res.json())
             .then((data) => setUserCountry(data.country))
             .catch((error) => console.error("Error fetching country:", error));
-        console.log(userCountry);
+        //console.log(userCountry);
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
@@ -283,7 +283,7 @@ const Home = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    console.log(selectedMovie);
+    //console.log(selectedMovie);
 
     return (
         <div className="main-container">

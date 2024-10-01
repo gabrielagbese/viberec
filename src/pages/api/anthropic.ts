@@ -27,7 +27,24 @@ export default async function handler(
                 ],
             });
 
-            res.status(200).json({ completion: response.content[0].text }); // Return the text content
+            // Check the structure of the response content
+            let completionText = "No response content";
+
+            if (response.content && response.content.length > 0) {
+                // Loop through the content blocks to find the text
+                for (const block of response.content) {
+                    if (block.type === "text" && block.text) {
+                        completionText = block.text;
+                        break; // Stop after finding the first text block
+                    }
+                }
+            }
+
+            // Parse the JSON string if needed
+            const recommendations = JSON.parse(completionText).recommendations;
+
+            // Return the recommendations as JSON
+            res.status(200).json({ recommendations });
         } catch (error) {
             console.error("Error with Anthropic API:", error);
             res.status(500).json({
