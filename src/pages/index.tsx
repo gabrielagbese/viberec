@@ -26,15 +26,12 @@ const Home = () => {
 
         checkScreenSize();
         window.addEventListener("resize", checkScreenSize);
-
-        return () => window.removeEventListener("resize", checkScreenSize);
-
         // Fetch user's country
         fetch("/api/country")
             .then((res) => res.json())
             .then((data) => setUserCountry(data.country))
             .catch((error) => console.error("Error fetching country:", error));
-
+        console.log(userCountry);
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
@@ -68,7 +65,7 @@ const Home = () => {
         }
 
         const moviePrompt = movies.join(", ");
-        const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended in JSON format. Give just the answer, so I only receive JSON.`;
+        const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended (in detail) in JSON format. Give just the answer, so I only receive JSON.`;
 
         try {
             const res = await fetch("/api/anthropic", {
@@ -225,17 +222,10 @@ const Home = () => {
     const handleMovieClick = async (movie: any) => {
         const posterUrl = `/api/tmdb/w200${movie.poster_path}`;
 
-        // Fetch OMDb details based on the movie's IMDb ID
-        const omdbResponse = await fetch(`/api/omdb?i=${movie.imdb_id}`);
-        const omdbData = await omdbResponse.json();
+        // Directly use the movie object, which already includes OMDb data
+        const movieWithDetails = movie; // This already has omdb_data included
 
-        // Merge OMDb data with the selected movie
-        const movieWithDetails = {
-            ...movie,
-            omdb_data: omdbData, // Ensure omdb_data is set correctly
-        };
-
-        setSelectedMovie(movieWithDetails); // Update state to include OMDb data
+        setSelectedMovie(movieWithDetails); // Update state to include TMDB and OMDb data
 
         const dominantColors = await getDominantColors(posterUrl);
         if (recDetailsRef.current && dominantColors.length > 0) {
@@ -311,7 +301,7 @@ const Home = () => {
                     </button>
                 )}
                 <div>
-                    <div className="recommended-titles-container">
+                    <div className="recommended-titles-container magicpattern">
                         {recommendationStatus === "idle" ? (
                             <p>
                                 Enter movie titles and click 'Submit' to get
@@ -321,7 +311,7 @@ const Home = () => {
                             <p>Loading movie recommendations...</p>
                         ) : (
                             <>
-                                <div className="recommended-titles">
+                                <div className="recommended-titles ">
                                     {movieDetails.map((movie, index) => (
                                         <div
                                             key={index}
@@ -374,27 +364,27 @@ const Home = () => {
                                     <>
                                         <p>
                                             <strong>Director:</strong>{" "}
-                                            {selectedMovie.omdb_data.Director}
+                                            {selectedMovie.omdb_data.director}
                                         </p>
                                         <p>
-                                            <strong>Actors:</strong>{" "}
-                                            {selectedMovie.omdb_data.Actors}
+                                            <strong>Starring:</strong>{" "}
+                                            {selectedMovie.omdb_data.actors}
                                         </p>
                                         <p>
                                             <strong>Rated:</strong>{" "}
-                                            {selectedMovie.omdb_data.Rated}
+                                            {selectedMovie.omdb_data.rated}
                                         </p>
                                         <p>
                                             <strong>Runtime:</strong>{" "}
-                                            {selectedMovie.omdb_data.Runtime}
+                                            {selectedMovie.omdb_data.runtime}
                                         </p>
                                         <p>
                                             <strong>Genre:</strong>{" "}
-                                            {selectedMovie.omdb_data.Genre}
+                                            {selectedMovie.omdb_data.genre}
                                         </p>
                                         <p>
                                             <strong>Metascore:</strong>{" "}
-                                            {selectedMovie.omdb_data.Metascore}
+                                            {selectedMovie.omdb_data.metascore}
                                         </p>
                                         <p>
                                             <strong>IMDb Rating:</strong>{" "}
@@ -430,6 +420,71 @@ const Home = () => {
                                                 alt="Movie still"
                                             />
                                         )
+                                    )}
+
+                                {selectedMovie.watch_providers &&
+                                    userCountry && (
+                                        <>
+                                            <p>Providers:</p>
+                                            {selectedMovie.watch_providers[
+                                                userCountry
+                                            ] &&
+                                            selectedMovie.watch_providers[
+                                                userCountry
+                                            ].flatrate ? (
+                                                selectedMovie.watch_providers[
+                                                    userCountry
+                                                ].flatrate.map((provider) => (
+                                                    <div
+                                                        key={
+                                                            provider.provider_id
+                                                        }
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems:
+                                                                "center",
+                                                            marginBottom: "5px",
+                                                        }}
+                                                    >
+                                                        {provider.logo_path ? (
+                                                            <img
+                                                                src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
+                                                                alt={
+                                                                    provider.provider_name
+                                                                }
+                                                                style={{
+                                                                    width: "30px",
+                                                                    height: "30px",
+                                                                    marginRight:
+                                                                        "10px",
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                style={{
+                                                                    width: "30px",
+                                                                    height: "30px",
+                                                                    marginRight:
+                                                                        "10px",
+                                                                    backgroundColor:
+                                                                        "#ccc",
+                                                                }}
+                                                            />
+                                                        )}
+                                                        <p>
+                                                            {
+                                                                provider.provider_name
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p>
+                                                    Providers not available in
+                                                    your region.
+                                                </p>
+                                            )}
+                                        </>
                                     )}
                             </>
                         ) : (
