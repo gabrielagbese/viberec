@@ -30,6 +30,7 @@ const Home = () => {
     const [movieInput, setMovieInput] = useState("");
     const [movies, setMovies] = useState<string[]>([]);
     const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
+    const [dominantColors, setDominantColors] = useState<string[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
         null
     );
@@ -43,6 +44,29 @@ const Home = () => {
     const recDetailsRef = useRef<HTMLDivElement>(null);
 
     const recommendationSectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (movieDetails.length > 0) {
+            const fetchColors = async () => {
+                const colors = await Promise.all(
+                    movieDetails.map((movie) =>
+                        getDominantColors(`/api/tmdb/w200${movie.poster_path}`)
+                    )
+                );
+
+                // Set the CSS variable for each poster's dominant color
+                colors.forEach((colorArray, index) => {
+                    const dominantColor = colorArray[0];
+                    document.documentElement.style.setProperty(
+                        `--poster-color-${index}`,
+                        dominantColor
+                    );
+                });
+            };
+
+            fetchColors();
+        }
+    }, [movieDetails]);
 
     useEffect(() => {
         const checkScreenSize = () => {
@@ -164,9 +188,9 @@ const Home = () => {
         return (r * 299 + g * 587 + b * 114) / 1000;
     };
 
-    const isNearBlack = (r: number, g: number, b: number): boolean => {
-        return r <= 10 && g <= 10 && b <= 10;
-    };
+    // const isNearBlack = (r: number, g: number, b: number): boolean => {
+    //     return r <= 10 && g <= 10 && b <= 10;
+    // };
 
     const brightenColor = (color: string, factor: number = 7): string => {
         const rgb = color.match(/\d+/g)!.map(Number);
@@ -218,23 +242,35 @@ const Home = () => {
                     .sort(([, a], [, b]) => b - a)
                     .map(([color]) => {
                         const [r, g, b] = color.split(",").map(Number);
-                        const brightness = calculateBrightness(r, g, b);
                         return {
                             color: `rgb(${color})`,
-                            brightness,
                             isNearBlack: isNearBlack(r, g, b),
+                            isNearWhite: isNearWhite(r, g, b),
                         };
                     });
 
+                // Find the first non-near-black and non-near-white color, fallback to a neutral gray if all are too close to black or white
+                let selectedColor = sortedColors.find(
+                    ({ isNearBlack, isNearWhite }) =>
+                        !isNearBlack && !isNearWhite
+                )?.color;
+
+                // If no suitable color found, use fallback gray
+                if (!selectedColor) {
+                    selectedColor = "rgb(128, 128, 128)";
+                }
+
+                // Resolve with the first non-near-black/white color and top 'colorCount' colors
                 const selectedColors = sortedColors
                     .slice(0, colorCount)
-                    .map(({ color, brightness, isNearBlack }) =>
-                        isNearBlack
+                    .map(({ color, isNearBlack, isNearWhite }) =>
+                        isNearBlack || isNearWhite
                             ? "rgb(128, 128, 128)"
-                            : brightness <= 80
-                            ? brightenColor(color)
                             : color
                     );
+
+                // Set the first selected color to the chosen dominant one
+                selectedColors[0] = selectedColor;
 
                 resolve(selectedColors);
             };
@@ -244,6 +280,18 @@ const Home = () => {
                 resolve(["rgb(200,200,200)"]);
             };
         });
+    };
+
+    // Utility function to check if a color is near black
+    const isNearBlack = (r: number, g: number, b: number): boolean => {
+        const threshold = 50; // Threshold for black detection
+        return r < threshold && g < threshold && b < threshold;
+    };
+
+    // Utility function to check if a color is near white
+    const isNearWhite = (r: number, g: number, b: number): boolean => {
+        const threshold = 205; // Threshold for white detection
+        return r > threshold && g > threshold && b > threshold;
     };
 
     const handleMovieClick = async (movie: MovieDetails) => {
@@ -269,10 +317,10 @@ const Home = () => {
     };
 
     const openDetails = () => {
-        gsap.to(recDetailsRef.current, { y: "-100%" });
+        gsap.to(recDetailsRef.current, { y: "-110%" });
     };
     const closeDetails = () => {
-        gsap.to(recDetailsRef.current, { y: "100%" });
+        gsap.to(recDetailsRef.current, { y: "110%" });
         // Optionally reset background color when closed
         if (recDetailsRef.current) {
             recDetailsRef.current.style.backgroundColor = "transparent"; // or a default color
@@ -287,7 +335,7 @@ const Home = () => {
 
     return (
         <div className="main-container">
-            <div className="title-input-section">
+            <div className="title-input-section title-input-bg">
                 <h1>Movie Recommendation System</h1>
                 <form onSubmit={handleSubmit}>
                     <div>
@@ -328,6 +376,12 @@ const Home = () => {
                     </button>
                 )}
                 <div>
+                    <div className="background-layer">
+                        <div className="triangle xlt"></div>
+                        <div className="triangle large"></div>
+                        <div className="triangle medium"></div>
+                        <div className="triangle small"></div>
+                    </div>
                     <div className="recommended-titles-container magicpattern">
                         {recommendationStatus === "idle" ? (
                             <p>
@@ -364,7 +418,11 @@ const Home = () => {
                         )}
                     </div>
 
-                    <div className="recommended-details" ref={recDetailsRef}>
+                    <div
+                        className="recommended-details"
+                        id="style-2"
+                        ref={recDetailsRef}
+                    >
                         {selectedMovie ? (
                             <>
                                 <h2>{selectedMovie.title}</h2>
