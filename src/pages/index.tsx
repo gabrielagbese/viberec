@@ -2,33 +2,21 @@ import { useState, FormEvent, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { MovieDetails, Still, WatchProvider } from "./api/tmdb";
+import * as Accordion from "@radix-ui/react-accordion";
 
 gsap.registerPlugin(useGSAP);
 
-// interface Provider {
-//     provider_id: number;
-//     provider_name: string;
-//     logo_path: string | null; // Allowing null since the logo path might not always be available
-// }
-
-// interface WatchProvidersResponse {
-//     [region: string]: {
-//         results: {
-//             flatrate?: Provider[]; // Optional property for flat-rate providers
-//             rent?: Provider[]; // Optional property for rental providers
-//             buy?: Provider[]; // Optional property for purchase providers
-//         };
-//     };
-// }
-
 interface RecommendedMovie {
-    title: string; // Title of the recommended movie
-    reason: string; // Reason why the movie is recommended
+    title: string;
+    year: string;
+    language: string;
+    reason: string;
 }
 
 const Home = () => {
     const [movieInput, setMovieInput] = useState("");
     const [movies, setMovies] = useState<string[]>([]);
+    const [value, setValue] = useState("one");
     const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
     const [dominantColors, setDominantColors] = useState<string[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
@@ -42,7 +30,8 @@ const Home = () => {
     const [isSmallScreen, setIsSmallScreen] = useState(false);
 
     const recDetailsRef = useRef<HTMLDivElement>(null);
-
+    const recDetailsContentRef = useRef<HTMLDivElement>(null);
+    const endRef = useRef<HTMLDivElement>(null);
     const recommendationSectionRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -65,6 +54,22 @@ const Home = () => {
             };
 
             fetchColors();
+        }
+    }, [movieDetails]);
+
+    useEffect(() => {
+        if (movieDetails.length > 0) {
+            // Fade in movie cards when movie details are updated
+            gsap.fromTo(
+                ".recommended-titles",
+                { opacity: 0, y: 20 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.5,
+                    ease: "power3.out",
+                }
+            );
         }
     }, [movieDetails]);
 
@@ -92,6 +97,8 @@ const Home = () => {
 
     const removeMovieFromList = (index: number) => {
         const updatedMovies = movies.filter((_, i) => i !== index);
+        setRecommendationStatus("idle");
+        closeDetails();
         setMovies(updatedMovies);
     };
 
@@ -107,14 +114,41 @@ const Home = () => {
         setMovieDetails([]);
         setSelectedMovie(null);
 
-        if (isSmallScreen && recommendationSectionRef.current) {
-            recommendationSectionRef.current.scrollIntoView({
+        if (isSmallScreen && endRef.current) {
+            endRef.current.scrollIntoView({
                 behavior: "smooth",
             });
         }
 
         const moviePrompt = movies.join(", ");
-        const prompt = `Give me the names of four films that are similar to ${moviePrompt}. Give the response as the movie titles and why they were recommended (in detail) in JSON format. Give just the answer, so I only receive JSON.`;
+        const prompt = `Given the film "${moviePrompt}", provide four similar movie recommendations. For each recommendation, include:
+1. original title (even if it is in foreign characters, including any special characters, properly escaped for JSON)
+2. The release year (YYYY format)
+3. The primary language of the film (English, Korean, French, etc.)
+4. A detailed explanation of why it's similar
+5. Movies only, no series or limited series
+6. Treat each new prompt as a fresh request, don't use context from previous queries
+
+Format the response as valid JSON with the following structure:
+{
+  "recommendations": [
+    {
+      "title": "Movie Title Here",
+      "year": "2000",
+      "language": "English",
+      "reason": "Detailed explanation here"
+    }
+  ]
+}
+
+IMPORTANT:
+- Ensure all text is properly escaped for JSON
+- Use double quotes for all strings
+- Do not use line breaks within strings
+- Provide exactly 4 recommendations
+- Verify the response is valid JSON before completing
+
+Give only the JSON response with no additional text.`;
 
         try {
             const res = await fetch("/api/anthropic", {
@@ -138,6 +172,8 @@ const Home = () => {
                     recommendedMovies = parsedResponse.recommendations.map(
                         (movie: RecommendedMovie) => ({
                             title: movie.title,
+                            year: movie.year,
+                            language: movie.language,
                             reason: movie.reason,
                         })
                     );
@@ -159,9 +195,7 @@ const Home = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        titles: recommendedMovies.map(
-                            (movie: RecommendedMovie) => movie.title
-                        ),
+                        recommendations: recommendedMovies,
                     }),
                 });
 
@@ -186,21 +220,6 @@ const Home = () => {
 
     const calculateBrightness = (r: number, g: number, b: number): number => {
         return (r * 299 + g * 587 + b * 114) / 1000;
-    };
-
-    // const isNearBlack = (r: number, g: number, b: number): boolean => {
-    //     return r <= 10 && g <= 10 && b <= 10;
-    // };
-
-    const brightenColor = (color: string, factor: number = 7): string => {
-        const rgb = color.match(/\d+/g)!.map(Number);
-        if (isNearBlack(rgb[0], rgb[1], rgb[2])) {
-            return "rgb(128, 128, 128)"; // Return medium grey for near-black colors
-        }
-        const brightenedRgb = rgb.map((channel) =>
-            Math.min(255, Math.round(channel * factor))
-        );
-        return `rgb(${brightenedRgb.join(",")})`;
     };
 
     const getDominantColors = (
@@ -303,13 +322,17 @@ const Home = () => {
         setSelectedMovie(movieWithDetails); // Update state to include TMDB and OMDb data
 
         const dominantColors = await getDominantColors(posterUrl);
-        if (recDetailsRef.current && dominantColors.length > 0) {
+        if (recDetailsContentRef.current && dominantColors.length > 0) {
             const backgroundColor = dominantColors[0];
-            recDetailsRef.current.style.backgroundColor = backgroundColor;
-
+            recDetailsContentRef.current.style.backgroundColor =
+                backgroundColor;
+            document.documentElement.style.setProperty(
+                "--dominant-color",
+                backgroundColor
+            );
             const [r, g, b] = backgroundColor.match(/\d+/g)!.map(Number);
             const brightness = calculateBrightness(r, g, b);
-            recDetailsRef.current.style.color =
+            recDetailsContentRef.current.style.color =
                 brightness > 125 ? "black" : "white";
         }
 
@@ -317,18 +340,20 @@ const Home = () => {
     };
 
     const openDetails = () => {
-        gsap.to(recDetailsRef.current, { y: "-110%" });
+        gsap.to(recDetailsRef.current, { y: "-102%", duration: 1 });
     };
     const closeDetails = () => {
-        gsap.to(recDetailsRef.current, { y: "110%" });
+        gsap.to(recDetailsRef.current, { y: "102%", duration: 1.5 });
         // Optionally reset background color when closed
         if (recDetailsRef.current) {
             recDetailsRef.current.style.backgroundColor = "transparent"; // or a default color
         }
+        setValue("item-1");
     };
 
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
+        closeDetails();
     };
 
     //console.log(selectedMovie);
@@ -375,226 +400,382 @@ const Home = () => {
                         Back to Top
                     </button>
                 )}
-                <div>
+                <div className="recommendation-section-inner">
                     <div className="background-layer">
                         <div className="triangle xlt"></div>
                         <div className="triangle large"></div>
                         <div className="triangle medium"></div>
                         <div className="triangle small"></div>
                     </div>
-                    <div className="recommended-titles-container magicpattern">
-                        {recommendationStatus === "idle" ? (
-                            <p>
-                                Enter movie titles and click Submit to get
-                                recommendations.
-                            </p>
-                        ) : recommendationStatus === "loading" ? (
-                            <p>Loading movie recommendations...</p>
-                        ) : (
-                            <>
-                                <div className="recommended-titles ">
-                                    {movieDetails.map((movie, index) => (
-                                        <div
-                                            key={index}
-                                            className="movie-card"
-                                            onClick={() =>
-                                                handleMovieClick(movie)
-                                            }
-                                            style={{ cursor: "pointer" }}
-                                        >
-                                            <img
-                                                src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
-                                                alt={`${movie.title} poster`}
-                                                style={{ width: "100%" }}
-                                            />
-                                            <h4>{movie.title}</h4>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div>
-                                    {/*empty div to centralize recommended-titles*/}
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    <div
-                        className="recommended-details"
-                        id="style-2"
-                        ref={recDetailsRef}
-                    >
-                        {selectedMovie ? (
-                            <>
-                                <h2>{selectedMovie.title}</h2>
+                    <div className="recommended-titles-container">
+                        <div className="recommended-list">
+                            {recommendationStatus === "idle" ? (
                                 <p>
-                                    <strong>Release Date:</strong>{" "}
-                                    {selectedMovie.release_date}
+                                    Enter movie titles and click Submit to get
+                                    recommendations.
                                 </p>
-                                <button onClick={closeDetails}>Close</button>
-                                <p>{selectedMovie.overview}</p>
-                                {selectedMovie.poster_path && (
-                                    <img
-                                        src={`https://image.tmdb.org/t/p/w200${selectedMovie.poster_path}`}
-                                        alt={`${selectedMovie.title} poster`}
-                                        style={{ width: "200px" }}
-                                    />
-                                )}
-                                <p>
-                                    <strong>Reason for recommendation:</strong>{" "}
-                                    {selectedMovie.reason}
-                                </p>
-
-                                {/* Render OMDb details */}
-                                {selectedMovie.omdb_data && (
-                                    <>
-                                        <p>
-                                            <strong>Director:</strong>{" "}
-                                            {selectedMovie.omdb_data.director}
-                                        </p>
-                                        <p>
-                                            <strong>Starring:</strong>{" "}
-                                            {selectedMovie.omdb_data.actors}
-                                        </p>
-                                        <p>
-                                            <strong>Rated:</strong>{" "}
-                                            {selectedMovie.omdb_data.rated}
-                                        </p>
-                                        <p>
-                                            <strong>Runtime:</strong>{" "}
-                                            {selectedMovie.omdb_data.runtime}
-                                        </p>
-                                        <p>
-                                            <strong>Genre:</strong>{" "}
-                                            {selectedMovie.omdb_data.genre}
-                                        </p>
-                                        <p>
-                                            <strong>Metascore:</strong>{" "}
-                                            {selectedMovie.omdb_data.metascore}
-                                        </p>
-                                        <p>
-                                            <strong>IMDb Rating:</strong>{" "}
-                                            {selectedMovie.omdb_data.imdbRating}
-                                        </p>
-                                    </>
-                                )}
-
-                                {/* Render Trailers */}
-                                {selectedMovie.trailers.length > 0 && (
-                                    <div>
-                                        <h3>Trailer:</h3>
-                                        <iframe
-                                            width="560"
-                                            height="315"
-                                            src={`https://www.youtube.com/embed/${selectedMovie.trailers[0].key}`}
-                                            title={
-                                                selectedMovie.trailers[0].name
-                                            }
-                                            frameBorder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        ></iframe>
-                                    </div>
-                                )}
-
-                                {/* Render Stills */}
-                                {selectedMovie.stills &&
-                                    selectedMovie.stills.map(
-                                        (still: Still, index: number) => (
-                                            <img
+                            ) : recommendationStatus === "loading" ? (
+                                <p>Loading movie recommendations...</p>
+                            ) : (
+                                <>
+                                    <div className="recommended-titles ">
+                                        {movieDetails.map((movie, index) => (
+                                            <div
                                                 key={index}
-                                                src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
-                                                alt="Movie still"
-                                            />
-                                        )
-                                    )}
+                                                className="movie-card"
+                                                onClick={() =>
+                                                    handleMovieClick(movie)
+                                                }
+                                                style={{ cursor: "pointer" }}
+                                            >
+                                                <img
+                                                    src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                                                    alt={`${movie.title} poster`}
+                                                    style={{ width: "100%" }}
+                                                    className="movie-card-image"
+                                                />
+                                                <div className="movie-card-text">
+                                                    <h4>{movie.title}</h4>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div>
+                                        {/*empty div to centralize recommended-titles*/}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <div
+                            className="recommended-details"
+                            id="style-2"
+                            ref={recDetailsRef}
+                            //onClick={closeDetails}
+                        >
+                            <div
+                                className="recommended-details-content"
+                                ref={recDetailsContentRef}
+                            >
+                                {selectedMovie ? (
+                                    <>
+                                        <Accordion.Root
+                                            type="single"
+                                            defaultValue="item-1"
+                                            className="accordion-root"
+                                        >
+                                            <Accordion.Item
+                                                value="item-1"
+                                                className="accordion-item"
+                                            >
+                                                <Accordion.Trigger className="accordion-trigger">
+                                                    <span
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems:
+                                                                "center",
+                                                        }}
+                                                    >
+                                                        <h2>
+                                                            {
+                                                                selectedMovie.title
+                                                            }
+                                                            <span>
+                                                                {`(${
+                                                                    selectedMovie.release_date.split(
+                                                                        "-"
+                                                                    )[0]
+                                                                })`}
+                                                            </span>
+                                                        </h2>
+                                                    </span>
 
-                                {/* Render Watch Providers */}
-                                {selectedMovie.watch_providers &&
-                                    userCountry && (
-                                        <>
-                                            <p>Providers:</p>
-                                            {selectedMovie.watch_providers[
-                                                userCountry
-                                            ] ? (
-                                                selectedMovie.watch_providers[
-                                                    userCountry
-                                                ].flatrate &&
-                                                selectedMovie.watch_providers[
-                                                    userCountry
-                                                ].flatrate.length > 0 ? (
-                                                    selectedMovie.watch_providers[
-                                                        userCountry
-                                                    ].flatrate.map(
-                                                        (
-                                                            provider: WatchProvider
-                                                        ) => (
-                                                            <div
-                                                                key={
-                                                                    provider.provider_id
-                                                                }
-                                                                style={{
-                                                                    display:
-                                                                        "flex",
-                                                                    alignItems:
-                                                                        "center",
-                                                                    marginBottom:
-                                                                        "5px",
-                                                                }}
-                                                            >
-                                                                {provider.logo_path ? (
-                                                                    <img
-                                                                        src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
-                                                                        alt={
-                                                                            provider.provider_name
-                                                                        }
-                                                                        style={{
-                                                                            width: "30px",
-                                                                            height: "30px",
-                                                                            marginRight:
-                                                                                "10px",
-                                                                        }}
-                                                                    />
-                                                                ) : (
-                                                                    <div
-                                                                        style={{
-                                                                            width: "30px",
-                                                                            height: "30px",
-                                                                            marginRight:
-                                                                                "10px",
-                                                                            backgroundColor:
-                                                                                "#ccc",
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                                <p>
-                                                                    {
-                                                                        provider.provider_name
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                        )
-                                                    )
-                                                ) : (
+                                                    <button
+                                                        onClick={closeDetails}
+                                                    >
+                                                        Close
+                                                    </button>
+                                                </Accordion.Trigger>
+                                                <Accordion.Content className="accordion-content">
+                                                    {selectedMovie.poster_path && (
+                                                        <img
+                                                            src={`https://image.tmdb.org/t/p/w200${selectedMovie.poster_path}`}
+                                                            alt={`${selectedMovie.title} poster`}
+                                                            style={{
+                                                                width: "200px",
+                                                            }}
+                                                        />
+                                                    )}
                                                     <p>
-                                                        Providers not available
-                                                        in your region.
+                                                        <strong>
+                                                            Release Date:
+                                                        </strong>{" "}
+                                                        {
+                                                            selectedMovie.release_date
+                                                        }
                                                     </p>
-                                                )
-                                            ) : (
-                                                <p>
-                                                    Providers not available in
-                                                    your region.
-                                                </p>
-                                            )}
-                                        </>
-                                    )}
-                            </>
-                        ) : (
-                            <p>Select a movie to see its details</p>
-                        )}
+                                                    {/* Render OMDb details */}
+                                                    {selectedMovie.omdb_data && (
+                                                        <>
+                                                            <p>
+                                                                <strong>
+                                                                    Director:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .director
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    Starring:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .actors
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    Rated:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .rated
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    Runtime:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .runtime
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    Genre:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .genre
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    Metascore:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .metascore
+                                                                }
+                                                            </p>
+                                                            <p>
+                                                                <strong>
+                                                                    IMDb Rating:
+                                                                </strong>{" "}
+                                                                {
+                                                                    selectedMovie
+                                                                        .omdb_data
+                                                                        .imdbRating
+                                                                }
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                    <p>
+                                                        <strong>
+                                                            Letterboxd:
+                                                        </strong>
+                                                        Coming Soon
+                                                    </p>
+                                                </Accordion.Content>
+                                            </Accordion.Item>
+                                            <Accordion.Item
+                                                value="item-2"
+                                                className="accordion-item"
+                                            >
+                                                <Accordion.Trigger className="accordion-trigger">
+                                                    <h3>Synopsis/Why</h3>
+                                                </Accordion.Trigger>
+                                                <Accordion.Content className="accordion-content">
+                                                    <p>
+                                                        {selectedMovie.overview}
+                                                    </p>
+                                                    <p>
+                                                        <strong>
+                                                            Reason for
+                                                            recommendation:
+                                                        </strong>{" "}
+                                                        {selectedMovie.reason}
+                                                    </p>
+                                                </Accordion.Content>
+                                            </Accordion.Item>
+                                            <Accordion.Item
+                                                value="item-3"
+                                                className="accordion-item"
+                                            >
+                                                <Accordion.Trigger className="accordion-trigger">
+                                                    <h3>Trailer/Stills</h3>
+                                                </Accordion.Trigger>
+                                                <Accordion.Content className="accordion-content">
+                                                    {selectedMovie.trailers
+                                                        .length > 0 && (
+                                                        <div>
+                                                            <h3>Trailer:</h3>
+                                                            <iframe
+                                                                width="560"
+                                                                height="315"
+                                                                src={`https://www.youtube.com/embed/${selectedMovie.trailers[0].key}`}
+                                                                title={
+                                                                    selectedMovie
+                                                                        .trailers[0]
+                                                                        .name
+                                                                }
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                            ></iframe>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Render Stills */}
+                                                    {selectedMovie.stills &&
+                                                        selectedMovie.stills.map(
+                                                            (
+                                                                still: Still,
+                                                                index: number
+                                                            ) => (
+                                                                <img
+                                                                    key={index}
+                                                                    src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
+                                                                    alt="Movie still"
+                                                                />
+                                                            )
+                                                        )}
+                                                </Accordion.Content>
+                                            </Accordion.Item>
+                                            <Accordion.Item
+                                                value="item-4"
+                                                className="accordion-item"
+                                            >
+                                                <Accordion.Trigger className="accordion-trigger">
+                                                    <h3>Watch</h3>
+                                                </Accordion.Trigger>
+                                                <Accordion.Content className="accordion-content">
+                                                    {/* Render Watch Providers */}
+                                                    {selectedMovie.watch_providers &&
+                                                        userCountry && (
+                                                            <>
+                                                                <p>
+                                                                    Providers:
+                                                                </p>
+                                                                {selectedMovie
+                                                                    .watch_providers[
+                                                                    userCountry
+                                                                ] ? (
+                                                                    selectedMovie
+                                                                        .watch_providers[
+                                                                        userCountry
+                                                                    ]
+                                                                        .flatrate &&
+                                                                    selectedMovie
+                                                                        .watch_providers[
+                                                                        userCountry
+                                                                    ].flatrate
+                                                                        .length >
+                                                                        0 ? (
+                                                                        selectedMovie.watch_providers[
+                                                                            userCountry
+                                                                        ].flatrate.map(
+                                                                            (
+                                                                                provider: WatchProvider
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        provider.provider_id
+                                                                                    }
+                                                                                    style={{
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                        marginBottom:
+                                                                                            "5px",
+                                                                                    }}
+                                                                                >
+                                                                                    {provider.logo_path ? (
+                                                                                        <img
+                                                                                            src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
+                                                                                            alt={
+                                                                                                provider.provider_name
+                                                                                            }
+                                                                                            style={{
+                                                                                                width: "30px",
+                                                                                                height: "30px",
+                                                                                                marginRight:
+                                                                                                    "10px",
+                                                                                            }}
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div
+                                                                                            style={{
+                                                                                                width: "30px",
+                                                                                                height: "30px",
+                                                                                                marginRight:
+                                                                                                    "10px",
+                                                                                                backgroundColor:
+                                                                                                    "#ccc",
+                                                                                            }}
+                                                                                        />
+                                                                                    )}
+                                                                                    <p>
+                                                                                        {
+                                                                                            provider.provider_name
+                                                                                        }
+                                                                                    </p>
+                                                                                </div>
+                                                                            )
+                                                                        )
+                                                                    ) : (
+                                                                        <p>
+                                                                            Providers
+                                                                            not
+                                                                            available
+                                                                            in
+                                                                            your
+                                                                            region.
+                                                                        </p>
+                                                                    )
+                                                                ) : (
+                                                                    <p>
+                                                                        Providers
+                                                                        not
+                                                                        available
+                                                                        in your
+                                                                        region.
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                </Accordion.Content>
+                                            </Accordion.Item>
+                                        </Accordion.Root>
+                                    </>
+                                ) : (
+                                    <p>Select a movie to see its details</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div ref={endRef} className="end-ref"></div>
         </div>
     );
 };
