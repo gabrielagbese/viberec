@@ -18,7 +18,7 @@ const Home = () => {
     const [movies, setMovies] = useState<string[]>([]);
     const [value, setValue] = useState("one");
     const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
-    const [dominantColors, setDominantColors] = useState<string[]>([]);
+    //const [dominantColors, setDominantColors] = useState<string[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
         null
     );
@@ -349,6 +349,7 @@ Give only the JSON response with no additional text.`;
             recDetailsRef.current.style.backgroundColor = "transparent"; // or a default color
         }
         setValue("item-1");
+        console.log(value);
     };
 
     const scrollToTop = () => {
