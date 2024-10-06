@@ -218,6 +218,10 @@ Give only the JSON response with no additional text.`;
         }
     };
 
+    const calculateBrightness = (r: number, g: number, b: number): number => {
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    };
+
     const getDominantColors = (
         imageUrl: string,
         colorCount: number = 5
@@ -627,7 +631,7 @@ Give only the JSON response with no additional text.`;
                                                     </h3>
                                                 </Accordion.Trigger>
                                                 <Accordion.Content className="accordion-content">
-                                                    {selectedMovie.reason
+                                                    {/* {selectedMovie.reason
                                                         .split("•")
                                                         .map((item, index) => {
                                                             const trimmedItem =
@@ -652,7 +656,7 @@ Give only the JSON response with no additional text.`;
                                                                         : trimmedItem}
                                                                 </div>
                                                             );
-                                                        })}
+                                                        })} */}
                                                 </Accordion.Content>
                                             </Accordion.Item>
                                             <Accordion.Item
@@ -661,7 +665,7 @@ Give only the JSON response with no additional text.`;
                                             >
                                                 <Accordion.Trigger className="accordion-trigger">
                                                     <h3>
-                                                        Trailer | Stills | Promo
+                                                        Trailer/ Stills/ Promo
                                                         Material
                                                     </h3>
                                                 </Accordion.Trigger>
