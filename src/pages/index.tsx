@@ -218,10 +218,6 @@ Give only the JSON response with no additional text.`;
         }
     };
 
-    const calculateBrightness = (r: number, g: number, b: number): number => {
-        return (r * 299 + g * 587 + b * 114) / 1000;
-    };
-
     const getDominantColors = (
         imageUrl: string,
         colorCount: number = 5
