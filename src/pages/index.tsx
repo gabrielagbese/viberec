@@ -627,9 +627,9 @@ Give only the JSON response with no additional text.`;
                                                     </h3>
                                                 </Accordion.Trigger>
                                                 <Accordion.Content className="accordion-content">
-                                                    {selectedMovie?.reason
-                                                        ?.split("-")
-                                                        ?.map((item, index) => {
+                                                    {/* {selectedMovie.reason
+                                                        .split("•")
+                                                        .map((item, index) => {
                                                             const trimmedItem =
                                                                 item.trim();
                                                             return (
@@ -652,7 +652,7 @@ Give only the JSON response with no additional text.`;
                                                                         : trimmedItem}
                                                                 </div>
                                                             );
-                                                        })}
+                                                        })} */}
                                                 </Accordion.Content>
                                             </Accordion.Item>
                                             <Accordion.Item
