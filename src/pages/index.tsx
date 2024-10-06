@@ -125,7 +125,7 @@ const Home = () => {
 1. original title (even if it is in foreign characters, including any special characters, properly escaped for JSON)
 2. The release year (YYYY format)
 3. The primary language of the film (English, Korean, French, etc.)
-4. A detailed explanation of why it's similar
+4. A detailed explanation of why it's similar, in summary and then in extensive bullet points, make the structure of the reason constant
 5. Movies only, no series or limited series
 6. Treat each new prompt as a fresh request, don't use context from previous queries
 
@@ -216,6 +216,10 @@ Give only the JSON response with no additional text.`;
             console.error("Error during submission:", error);
             setRecommendationStatus("idle");
         }
+    };
+
+    const calculateBrightness = (r: number, g: number, b: number): number => {
+        return (r * 299 + g * 587 + b * 114) / 1000;
     };
 
     const getDominantColors = (
@@ -666,53 +670,40 @@ Give only the JSON response with no additional text.`;
                                                     </h3>
                                                 </Accordion.Trigger>
                                                 <Accordion.Content className="accordion-content">
-                                                    <div className="promo-container">
-                                                        <div className="trailer">
-                                                            {selectedMovie
-                                                                .trailers
-                                                                .length > 0 && (
-                                                                <>
-                                                                    <h3>
-                                                                        Trailer
-                                                                    </h3>
-                                                                    <div>
-                                                                        <iframe
-                                                                            width="560"
-                                                                            height="315"
-                                                                            src={`https://www.youtube.com/embed/${selectedMovie.trailers[0].key}`}
-                                                                            title={
-                                                                                selectedMovie
-                                                                                    .trailers[0]
-                                                                                    .name
-                                                                            }
-                                                                            frameBorder="0"
-                                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                            allowFullScreen
-                                                                        ></iframe>
-                                                                    </div>
-                                                                </>
-                                                            )}
+                                                    {selectedMovie.trailers
+                                                        .length > 0 && (
+                                                        <div>
+                                                            <h3>Trailer:</h3>
+                                                            <iframe
+                                                                width="560"
+                                                                height="315"
+                                                                src={`https://www.youtube.com/embed/${selectedMovie.trailers[0].key}`}
+                                                                title={
+                                                                    selectedMovie
+                                                                        .trailers[0]
+                                                                        .name
+                                                                }
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                            ></iframe>
                                                         </div>
-                                                        <div className="stills-container">
-                                                            <h3>Images</h3>
-                                                            {/* Render Stills */}
-                                                            {selectedMovie.stills &&
-                                                                selectedMovie.stills.map(
-                                                                    (
-                                                                        still: Still,
-                                                                        index: number
-                                                                    ) => (
-                                                                        <img
-                                                                            key={
-                                                                                index
-                                                                            }
-                                                                            src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
-                                                                            alt="Movie still"
-                                                                        />
-                                                                    )
-                                                                )}
-                                                        </div>
-                                                    </div>
+                                                    )}
+
+                                                    {/* Render Stills */}
+                                                    {selectedMovie.stills &&
+                                                        selectedMovie.stills.map(
+                                                            (
+                                                                still: Still,
+                                                                index: number
+                                                            ) => (
+                                                                <img
+                                                                    key={index}
+                                                                    src={`https://image.tmdb.org/t/p/w500${still.file_path}`}
+                                                                    alt="Movie still"
+                                                                />
+                                                            )
+                                                        )}
                                                 </Accordion.Content>
                                             </Accordion.Item>
                                             <Accordion.Item
