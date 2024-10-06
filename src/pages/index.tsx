@@ -105,8 +105,8 @@ const Home = () => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        if (movies.length < 2) {
-            alert("Please add at least two movies");
+        if (movies.length === 0) {
+            alert("Please add at least one movie title");
             return;
         }
 
@@ -125,7 +125,7 @@ const Home = () => {
 1. original title (even if it is in foreign characters, including any special characters, properly escaped for JSON)
 2. The release year (YYYY format)
 3. The primary language of the film (English, Korean, French, etc.)
-4. A detailed explanation of why it's similar, in summary and then in extensive bullet points, make the structure of the reason constant
+4. A detailed explanation of why it's similar, in summary and then in bullet points
 5. Movies only, no series or limited series
 6. Treat each new prompt as a fresh request, don't use context from previous queries
 
@@ -519,9 +519,9 @@ Give only the JSON response with no additional text.`;
                                                     <div className="details-main">
                                                         {selectedMovie.stills &&
                                                             selectedMovie
-                                                                .stills[1] && (
+                                                                .stills[0] && (
                                                                 <img
-                                                                    src={`https://image.tmdb.org/t/p/w500${selectedMovie.stills[1].file_path}`}
+                                                                    src={`https://image.tmdb.org/t/p/w500${selectedMovie.stills[0].file_path}`}
                                                                     alt="Movie still"
                                                                     className="details-main-poster"
                                                                 />
@@ -627,32 +627,13 @@ Give only the JSON response with no additional text.`;
                                                     </h3>
                                                 </Accordion.Trigger>
                                                 <Accordion.Content className="accordion-content">
-                                                    {selectedMovie.reason
-                                                        .split("•")
-                                                        .map((item, index) => {
-                                                            const trimmedItem =
-                                                                item.trim();
-                                                            return (
-                                                                <div
-                                                                    key={index}
-                                                                    className={
-                                                                        index ===
-                                                                        0
-                                                                            ? "first-point"
-                                                                            : "subsequent-point"
-                                                                    }
-                                                                >
-                                                                    {trimmedItem.includes(
-                                                                        "Detailed reasons:"
-                                                                    )
-                                                                        ? trimmedItem.replace(
-                                                                              "Detailed reasons:",
-                                                                              ""
-                                                                          )
-                                                                        : trimmedItem}
-                                                                </div>
-                                                            );
-                                                        })}
+                                                    <p>
+                                                        <strong>
+                                                            Reason for
+                                                            recommendation:
+                                                        </strong>{" "}
+                                                        {selectedMovie.reason}
+                                                    </p>
                                                 </Accordion.Content>
                                             </Accordion.Item>
                                             <Accordion.Item
