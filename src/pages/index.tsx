@@ -18,12 +18,12 @@ const Home = () => {
     const [movies, setMovies] = useState<string[]>([]);
     const [value, setValue] = useState("one");
     const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
-    //const [dominantColors, setDominantColors] = useState<string[]>([]);
+    const [dominantColors, setDominantColors] = useState<string[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
         null
     );
 
-    //const [userCountry, setUserCountry] = useState<string | null>(null);
+    const [userCountry, setUserCountry] = useState<string | null>(null);
     const [recommendationStatus, setRecommendationStatus] = useState<
         "idle" | "loading" | "completed"
     >("idle");
@@ -52,7 +52,8 @@ const Home = () => {
                     );
                 });
             };
-
+            console.log(userCountry);
+            console.log(dominantColors);
             fetchColors();
         }
     }, [movieDetails]);
