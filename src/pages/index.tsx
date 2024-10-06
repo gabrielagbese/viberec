@@ -125,7 +125,7 @@ const Home = () => {
 1. original title (even if it is in foreign characters, including any special characters, properly escaped for JSON)
 2. The release year (YYYY format)
 3. The primary language of the film (English, Korean, French, etc.)
-4. A detailed explanation of why it's similar, in summary and then in extensive bullet points mark bullet points with '-', make the structure of the reason constant
+4. A detailed explanation of why it's similar, in summary and then in extensive bullet points, make the structure of the reason constant
 5. Movies only, no series or limited series
 6. Treat each new prompt as a fresh request, don't use context from previous queries
 
