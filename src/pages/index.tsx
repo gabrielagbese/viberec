@@ -1,7 +1,7 @@
 import { useState, FormEvent, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { MovieDetails, Still, WatchProvider } from "./api/tmdb";
+import { MovieDetails, Still } from "./api/tmdb";
 import * as Accordion from "@radix-ui/react-accordion";
 
 gsap.registerPlugin(useGSAP);
@@ -23,7 +23,7 @@ const Home = () => {
         null
     );
 
-    const [userCountry, setUserCountry] = useState<string | null>(null);
+    //const [userCountry, setUserCountry] = useState<string | null>(null);
     const [recommendationStatus, setRecommendationStatus] = useState<
         "idle" | "loading" | "completed"
     >("idle");
@@ -83,7 +83,7 @@ const Home = () => {
         // Fetch user's country
         fetch("/api/country")
             .then((res) => res.json())
-            .then((data) => setUserCountry(data.country))
+
             .catch((error) => console.error("Error fetching country:", error));
         //console.log(userCountry);
         return () => window.removeEventListener("resize", checkScreenSize);
@@ -218,9 +218,9 @@ Give only the JSON response with no additional text.`;
         }
     };
 
-    const calculateBrightness = (r: number, g: number, b: number): number => {
-        return (r * 299 + g * 587 + b * 114) / 1000;
-    };
+    // const calculateBrightness = (r: number, g: number, b: number): number => {
+    //     return (r * 299 + g * 587 + b * 114) / 1000;
+    // };
 
     const getDominantColors = (
         imageUrl: string,
