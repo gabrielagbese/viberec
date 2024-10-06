@@ -85,7 +85,7 @@ const Home = () => {
             .then((res) => res.json())
             .then((data) => setUserCountry(data.country))
             .catch((error) => console.error("Error fetching country:", error));
-        console.log(userCountry);
+        //console.log(userCountry);
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
@@ -218,9 +218,9 @@ Give only the JSON response with no additional text.`;
         }
     };
 
-    // const calculateBrightness = (r: number, g: number, b: number): number => {
-    //     return (r * 299 + g * 587 + b * 114) / 1000;
-    // };
+    const calculateBrightness = (r: number, g: number, b: number): number => {
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    };
 
     const getDominantColors = (
         imageUrl: string,
@@ -727,91 +727,79 @@ Give only the JSON response with no additional text.`;
                                                     <h3>Watch</h3>
                                                 </Accordion.Trigger>
                                                 <Accordion.Content className="accordion-content">
-                                                    <div className="watch-container">
-                                                        {/* Render Watch Providers */}
-                                                        {selectedMovie.watch_providers &&
-                                                            userCountry && (
-                                                                <>
-                                                                    <p>
-                                                                        Providers:
-                                                                    </p>
-                                                                    {selectedMovie
+                                                    {/* Render Watch Providers */}
+                                                    {selectedMovie.watch_providers &&
+                                                        userCountry && (
+                                                            <>
+                                                                <p>
+                                                                    Providers:
+                                                                </p>
+                                                                {selectedMovie
+                                                                    .watch_providers[
+                                                                    userCountry
+                                                                ] ? (
+                                                                    selectedMovie
                                                                         .watch_providers[
                                                                         userCountry
-                                                                    ] ? (
-                                                                        selectedMovie
-                                                                            .watch_providers[
+                                                                    ]
+                                                                        .flatrate &&
+                                                                    selectedMovie
+                                                                        .watch_providers[
+                                                                        userCountry
+                                                                    ].flatrate
+                                                                        .length >
+                                                                        0 ? (
+                                                                        selectedMovie.watch_providers[
                                                                             userCountry
-                                                                        ]
-                                                                            .flatrate &&
-                                                                        selectedMovie
-                                                                            .watch_providers[
-                                                                            userCountry
-                                                                        ]
-                                                                            .flatrate
-                                                                            .length >
-                                                                            0 ? (
-                                                                            selectedMovie.watch_providers[
-                                                                                userCountry
-                                                                            ].flatrate.map(
-                                                                                (
-                                                                                    provider: WatchProvider
-                                                                                ) => (
-                                                                                    <div
-                                                                                        key={
-                                                                                            provider.provider_id
-                                                                                        }
-                                                                                        style={{
-                                                                                            display:
-                                                                                                "flex",
-                                                                                            alignItems:
-                                                                                                "center",
-                                                                                            marginBottom:
-                                                                                                "5px",
-                                                                                        }}
-                                                                                    >
-                                                                                        {provider.logo_path ? (
-                                                                                            <img
-                                                                                                src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
-                                                                                                alt={
-                                                                                                    provider.provider_name
-                                                                                                }
-                                                                                                style={{
-                                                                                                    width: "30px",
-                                                                                                    height: "30px",
-                                                                                                    marginRight:
-                                                                                                        "10px",
-                                                                                                }}
-                                                                                            />
-                                                                                        ) : (
-                                                                                            <div
-                                                                                                style={{
-                                                                                                    width: "30px",
-                                                                                                    height: "30px",
-                                                                                                    marginRight:
-                                                                                                        "10px",
-                                                                                                    backgroundColor:
-                                                                                                        "#ccc",
-                                                                                                }}
-                                                                                            />
-                                                                                        )}
-                                                                                        <p>
-                                                                                            {
+                                                                        ].flatrate.map(
+                                                                            (
+                                                                                provider: WatchProvider
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        provider.provider_id
+                                                                                    }
+                                                                                    style={{
+                                                                                        display:
+                                                                                            "flex",
+                                                                                        alignItems:
+                                                                                            "center",
+                                                                                        marginBottom:
+                                                                                            "5px",
+                                                                                    }}
+                                                                                >
+                                                                                    {provider.logo_path ? (
+                                                                                        <img
+                                                                                            src={`https://image.tmdb.org/t/p/w500${provider.logo_path}`}
+                                                                                            alt={
                                                                                                 provider.provider_name
                                                                                             }
-                                                                                        </p>
-                                                                                    </div>
-                                                                                )
+                                                                                            style={{
+                                                                                                width: "30px",
+                                                                                                height: "30px",
+                                                                                                marginRight:
+                                                                                                    "10px",
+                                                                                            }}
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div
+                                                                                            style={{
+                                                                                                width: "30px",
+                                                                                                height: "30px",
+                                                                                                marginRight:
+                                                                                                    "10px",
+                                                                                                backgroundColor:
+                                                                                                    "#ccc",
+                                                                                            }}
+                                                                                        />
+                                                                                    )}
+                                                                                    <p>
+                                                                                        {
+                                                                                            provider.provider_name
+                                                                                        }
+                                                                                    </p>
+                                                                                </div>
                                                                             )
-                                                                        ) : (
-                                                                            <p>
-                                                                                Providers
-                                                                                not
-                                                                                available
-                                                                                in
-                                                                                your
-                                                                                region.
-                                                                            </p>
                                                                         )
                                                                     ) : (
                                                                         <p>
@@ -822,10 +810,18 @@ Give only the JSON response with no additional text.`;
                                                                             your
                                                                             region.
                                                                         </p>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                    </div>
+                                                                    )
+                                                                ) : (
+                                                                    <p>
+                                                                        Providers
+                                                                        not
+                                                                        available
+                                                                        in your
+                                                                        region.
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        )}
                                                 </Accordion.Content>
                                             </Accordion.Item>
                                         </Accordion.Root>
