@@ -1,7 +1,7 @@
 import { useState, FormEvent, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { MovieDetails, Still } from "./api/tmdb";
+import { MovieDetails, Still, WatchProvider } from "./api/tmdb";
 import * as Accordion from "@radix-ui/react-accordion";
 
 gsap.registerPlugin(useGSAP);
@@ -18,7 +18,7 @@ const Home = () => {
     const [movies, setMovies] = useState<string[]>([]);
     const [value, setValue] = useState("one");
     const [movieDetails, setMovieDetails] = useState<MovieDetails[]>([]);
-    const [dominantColors, setDominantColors] = useState<string[]>([]);
+    //const [dominantColors, setDominantColors] = useState<string[]>([]);
     const [selectedMovie, setSelectedMovie] = useState<MovieDetails | null>(
         null
     );
@@ -52,8 +52,7 @@ const Home = () => {
                     );
                 });
             };
-            console.log(userCountry);
-            console.log(dominantColors);
+
             fetchColors();
         }
     }, [movieDetails]);
@@ -84,9 +83,9 @@ const Home = () => {
         // Fetch user's country
         fetch("/api/country")
             .then((res) => res.json())
-
+            .then((data) => setUserCountry(data.country))
             .catch((error) => console.error("Error fetching country:", error));
-        //console.log(userCountry);
+        console.log(userCountry);
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
